@@ -26,7 +26,7 @@ class ListModule(nn.Module):
         return len(self._modules)
 
 class TypeSpecificNet(nn.Module):
-    def __init__(self, args, embeddingnet, n_conditions):
+    def __init__(self, learned, prein, rand_typespaces, num_rand_embed, use_fc, l2_embed, dim_embed, embeddingnet, n_conditions):
         """ args: Input arguments from the main script
             embeddingnet: The network that projects the inputs into an embedding of embedding_size
             embedding_size: Number of dimensions of the embedding output from the embeddingnet
@@ -34,59 +34,59 @@ class TypeSpecificNet(nn.Module):
         """
         super(TypeSpecificNet, self).__init__()
         # Boolean indicating whether masks are learned or fixed
-        learnedmask = args.learned
+        learnedmask = learned
         
         # Boolean indicating whether masks are initialized in equally sized disjoint
         # sections or random otherwise
-        prein = args.prein
+        prein = prein
 
         # Indicates that there isn't a 1:1 relationship between type specific spaces
         # and pairs of items categories
-        if args.rand_typespaces:
-            n_conditions = int(np.ceil(n_conditions / float(args.num_rand_embed)))
+        if rand_typespaces:
+            n_conditions = int(np.ceil(n_conditions / float(num_rand_embed)))
 
         self.learnedmask = learnedmask
         self.embeddingnet = embeddingnet
 
         # When true a fully connected layer is learned to transform the general
         # embedding to the type specific embedding
-        self.fc_masks = args.use_fc
+        self.fc_masks = use_fc
 
         # When true we l2 normalize the output type specific embeddings
-        self.l2_norm = args.l2_embed
+        self.l2_norm = l2_embed
 
         if self.fc_masks:
             # learn a fully connected layer rather than a mask to project the general embedding
             # into the type specific space
             masks = []
             for i in range(n_conditions):
-                masks.append(nn.Linear(args.dim_embed, args.dim_embed))
+                masks.append(nn.Linear(dim_embed, dim_embed))
             self.masks = ListModule(*masks)
         else:
             # create the mask
             if learnedmask:
                 if prein:
                     # define masks 
-                    self.masks = torch.nn.Embedding(n_conditions, args.dim_embed)
+                    self.masks = torch.nn.Embedding(n_conditions, dim_embed)
                     # initialize masks
-                    mask_array = np.zeros([n_conditions, args.dim_embed])
+                    mask_array = np.zeros([n_conditions, dim_embed])
                     mask_array.fill(0.1)
-                    mask_len = int(args.dim_embed / n_conditions)
+                    mask_len = int(dim_embed / n_conditions)
                     for i in range(n_conditions):
                         mask_array[i, i*mask_len:(i+1)*mask_len] = 1
                     # no gradients for the masks
                     self.masks.weight = torch.nn.Parameter(torch.Tensor(mask_array), requires_grad=True)
                 else:
                     # define masks with gradients
-                    self.masks = torch.nn.Embedding(n_conditions, args.dim_embed)
+                    self.masks = torch.nn.Embedding(n_conditions, dim_embed)
                     # initialize weights
                     self.masks.weight.data.normal_(0.9, 0.7) # 0.1, 0.005
             else:
                 # define masks 
-                self.masks = torch.nn.Embedding(n_conditions, args.dim_embed)
+                self.masks = torch.nn.Embedding(n_conditions, dim_embed)
                 # initialize masks
-                mask_array = np.zeros([n_conditions, args.dim_embed])
-                mask_len = int(args.dim_embed / n_conditions)
+                mask_array = np.zeros([n_conditions, dim_embed])
+                mask_len = int(dim_embed / n_conditions)
                 for i in range(n_conditions):
                     mask_array[i, i*mask_len:(i+1)*mask_len] = 1
                 # no gradients for the masks
@@ -98,6 +98,7 @@ class TypeSpecificNet(nn.Module):
             c: type specific embedding to compute for the images, returns all embeddings
                when None including the general embedding concatenated onto the end
         """
+        
         embedded_x = self.embeddingnet(x)
         if c is None:
             # used during testing, wants all type specific embeddings returned for an image
@@ -125,7 +126,9 @@ class TypeSpecificNet(nn.Module):
             masked_embedding = []
             for embed, condition in zip(embedded_x, c):
                  mask = self.masks[condition]
+                 
                  masked_embedding.append(mask(embed.unsqueeze(0)))
+                 
                  mask_norm += mask.weight.norm(1)
 
             masked_embedding = torch.cat(masked_embedding)

@@ -62,7 +62,8 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.avgpool = nn.AvgPool2d(7)
-        self.fc_embed = nn.Linear(256 * block.expansion, embedding_size)
+        
+        self.fc_embed = nn.Linear(1024 * block.expansion, embedding_size)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -101,8 +102,8 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
+        
         x = self.fc_embed(x)
-
         return x
 
 

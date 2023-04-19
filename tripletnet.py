@@ -49,20 +49,20 @@ class EmbedBranch(nn.Module):
         return x
 
 class Tripletnet(nn.Module):
-    def __init__(self, args, embeddingnet, text_dim, criterion):
+    def __init__(self, learned_metric, dim_embed, margin, embeddingnet, text_dim, criterion):
         super(Tripletnet, self).__init__()
         self.embeddingnet = embeddingnet
-        self.text_branch = EmbedBranch(text_dim, args.dim_embed)
+        self.text_branch = EmbedBranch(text_dim, dim_embed)
         self.metric_branch = None
-        if args.learned_metric:
-            self.metric_branch = nn.Linear(args.dim_embed, 1, bias=False)
+        if learned_metric:
+            self.metric_branch = nn.Linear(dim_embed, 1, bias=False)
 
             # initilize as having an even weighting across all dimensions
-            weight = torch.zeros(1,args.dim_embed)/float(args.dim_embed)
+            weight = torch.zeros(1,dim_embed)/float(dim_embed)
             self.metric_branch.weight = nn.Parameter(weight)
 
         self.criterion = criterion
-        self.margin = args.margin
+        self.margin = margin
 
     def image_forward(self, x, y, z):
         """ x: Anchor data
