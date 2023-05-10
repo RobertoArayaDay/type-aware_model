@@ -45,24 +45,25 @@ class EmbedBranch(nn.Module):
         
         # L2 normalize each feature vector
         norm = torch.norm(x, p=2, dim=1) + 1e-10
-        x = x / norm.expand_as(x)
+        
+        x = x / norm.unsqueeze(-1).expand_as(x)
         return x
 
 class Tripletnet(nn.Module):
-    def __init__(self, learned_metric, dim_embed, margin, embeddingnet, text_dim, criterion):
+    def __init__(self, args, embeddingnet, text_dim, criterion):
         super(Tripletnet, self).__init__()
         self.embeddingnet = embeddingnet
-        self.text_branch = EmbedBranch(text_dim, dim_embed)
+        self.text_branch = EmbedBranch(text_dim, args.dim_embed)
         self.metric_branch = None
-        if learned_metric:
-            self.metric_branch = nn.Linear(dim_embed, 1, bias=False)
+        if args.learned_metric:
+            self.metric_branch = nn.Linear(args.dim_embed, 1, bias=False)
 
             # initilize as having an even weighting across all dimensions
-            weight = torch.zeros(1,dim_embed)/float(dim_embed)
+            weight = torch.zeros(1,args.dim_embed)/float(args.dim_embed)
             self.metric_branch.weight = nn.Parameter(weight)
 
         self.criterion = criterion
-        self.margin = margin
+        self.margin = args.margin
 
     def image_forward(self, x, y, z):
         """ x: Anchor data
@@ -93,6 +94,11 @@ class Tripletnet(nn.Module):
         # type specific triplet loss
         loss_triplet = self.criterion(dist_a, dist_b, target)
         acc = accuracy(dist_a, dist_b)
+        
+        #print('embedding of xyz')
+        #print(embedded_x.sum(), embedded_y.sum(), embedded_z.sum())
+        #print(embedded_x, embedded_y, embedded_z)
+        #print(dist_a, dist_b)
 
         # calculate image similarity loss on the general embedding
         disti_p = F.pairwise_distance(general_y, general_z, 2)
@@ -144,9 +150,10 @@ class Tripletnet(nn.Module):
             z: Close (positive) data
         """
         acc, loss_triplet, loss_sim_i, loss_mask, loss_embed, general_x, general_y, general_z = self.image_forward(x, y, z)
-        loss_sim_t, desc_x, desc_y, desc_z = self.text_forward(x, y, z)
-        loss_vse_x = self.calc_vse_loss(desc_x, general_x, general_y, general_z, x.has_text)
-        loss_vse_y = self.calc_vse_loss(desc_y, general_y, general_x, general_z, y.has_text)
-        loss_vse_z = self.calc_vse_loss(desc_z, general_z, general_x, general_y, z.has_text)
-        loss_vse = (loss_vse_x + loss_vse_y + loss_vse_z) / 3.
-        return acc, loss_triplet, loss_mask, loss_embed, loss_vse, loss_sim_t, loss_sim_i
+        #loss_sim_t, desc_x, desc_y, desc_z = self.text_forward(x, y, z)
+        #loss_vse_x = self.calc_vse_loss(desc_x, general_x, general_y, general_z, x.has_text)
+        #loss_vse_y = self.calc_vse_loss(desc_y, general_y, general_x, general_z, y.has_text)
+        #loss_vse_z = self.calc_vse_loss(desc_z, general_z, general_x, general_y, z.has_text)
+        #loss_vse = (loss_vse_x + loss_vse_y + loss_vse_z) / 3.
+        #return acc, loss_triplet, loss_mask, loss_embed, loss_vse, loss_sim_t, loss_sim_i
+        return acc, loss_triplet, loss_mask, loss_embed, loss_sim_i
