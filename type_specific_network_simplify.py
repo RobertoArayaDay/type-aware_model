@@ -24,29 +24,23 @@ class TypeSpecificNetAttention(nn.Module):
 
         self.learnedmask = learnedmask
         self.embeddingnet = embeddingnet
-        
 
         # When true we l2 normalize the output type specific embeddings
         self.l2_norm = args.l2_embed
-        self.dim_embed = args.dim_embed
-
-        # create the mask
-        if prein:
-            # define masks
-            self.masks = torch.nn.Embedding(n_conditions, args.dim_embed)
-            # initialize masks
-            mask_array = np.zeros([n_conditions, args.dim_embed])
-            mask_array.fill(0.1)
-            mask_len = int(args.dim_embed / n_conditions)
-            for i in range(n_conditions):
-                mask_array[i, i*mask_len:(i+1)*mask_len] = 1
-            # no gradients for the masks
-            self.masks.weight = torch.nn.Parameter(torch.Tensor(mask_array), requires_grad=True)
-        else:
-            # define masks with gradients
-            self.masks = torch.nn.Embedding(n_conditions, args.dim_embed)
-            # initialize weights
-            self.masks.weight.data.normal_(0.9, 0.7) # 0.1, 0.005
+        
+        # define masks
+        self.masks = torch.nn.Embedding(n_conditions, args.dim_embed)
+        
+        # initialize masks
+        mask_array = np.zeros([n_conditions, args.dim_embed])
+        mask_array.fill(0.1)
+        mask_len = int(args.dim_embed / n_conditions)
+        
+        for i in range(n_conditions):
+            mask_array[i, i*mask_len:(i+1)*mask_len] = 1
+        
+        # no gradients for the masks
+        self.masks.weight = torch.nn.Parameter(torch.Tensor(mask_array), requires_grad=True)
 
 
            
@@ -57,38 +51,32 @@ class TypeSpecificNetAttention(nn.Module):
         """
         
         embedded_x = self.embeddingnet(x)
-        
-        batch_size = x.shape[0]
-        n_conditions = self.masks.num_embeddings
-        dim_embed = self.dim_embed
         if c is None:
-            
             # used during testing, wants all type specific embeddings returned for an image
-            masks = self.masks.weight.unsqueeze(0).repeat(batch_size, 1, 1)
             
-            masked_embedding = torch.bmm(masks, embedded_x.unsqueeze(-1)).squeeze(-1)
+            masks = Variable(self.masks.weight.data)
+            masks = masks.unsqueeze(0).repeat(embedded_x.size(0), 1, 1)
+            embedded_x = embedded_x.unsqueeze(1)
+            masked_embedding = embedded_x.expand_as(masks) * masks
+
             if self.l2_norm:
-                norm = torch.norm(masked_embedding, p=2, dim=1) + 1e-10
-                masked_embedding = masked_embedding / norm.unsqueeze(-1)
-
+                norm = torch.norm(masked_embedding, p=2, dim=2) + 1e-10
+                masked_embedding = masked_embedding / norm.unsqueeze(-1).expand_as(masked_embedding)
+            
             return torch.cat((masked_embedding, embedded_x), 1)
+            
+        self.mask = self.masks(c)
+        self.mask = torch.nn.functional.relu(self.mask)
 
-        attention_weights = self.masks(c)
-        attention_weights = torch.nn.functional.softmax(attention_weights)
-        
-        print()
-        print(attention_weights.shape)
-        print(embedded_x.shape)
-        print(embedded_x.unsqueeze(-1).shape)
-        masked_embedding = torch.bmm(attention_weights, embedded_x.unsqueeze(-1)).squeeze(-1)
+        masked_embedding = embedded_x * self.mask
+        mask_norm = self.mask.norm(1)
 
+        embed_norm = embedded_x.norm(2)
         if self.l2_norm:
             norm = torch.norm(masked_embedding, p=2, dim=1) + 1e-10
-            masked_embedding = masked_embedding / norm.unsqueeze(-1)
-
-        mask_norm = attention_weights.norm(1, dim=(1, 2))
-        embed_norm = embedded_x.norm(2, dim=1)
-
+            masked_embedding = masked_embedding / norm.unsqueeze(-1).expand_as(masked_embedding)
+        
+        
         return masked_embedding, mask_norm, embed_norm, embedded_x
 
     
