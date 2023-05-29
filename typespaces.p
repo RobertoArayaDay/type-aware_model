@@ -1,91 +1,244 @@
-(3, 7)
-(3, 11)
-(3, 17)
-(3, 19)
-(3, 21)
-(3, 24)
-(3, 25)
-(3, 27)
-(3, 28)
-(3, 29)
-(3, 41)
-(3, 51)
-(3, 55)
-(7, 11)
-(7, 17)
-(7, 19)
-(7, 21)
-(7, 24)
-(7, 25)
-(7, 27)
-(7, 28)
-(7, 29)
-(7, 41)
-(7, 51)
-(7, 55)
-(11, 17)
-(11, 19)
-(11, 21)
-(11, 24)
-(11, 25)
-(11, 27)
-(11, 28)
-(11, 29)
-(11, 41)
-(11, 51)
-(11, 55)
-(17, 19)
-(17, 21)
-(17, 24)
-(17, 25)
-(17, 27)
-(17, 28)
-(17, 29)
-(17, 41)
-(17, 51)
-(17, 55)
-(19, 21)
-(19, 24)
-(19, 25)
-(19, 27)
-(19, 28)
-(19, 29)
-(19, 41)
-(19, 51)
-(19, 55)
-(21, 24)
-(21, 25)
-(21, 27)
-(21, 28)
-(21, 29)
-(21, 41)
-(21, 51)
-(21, 55)
-(24, 25)
-(24, 27)
-(24, 28)
-(24, 29)
-(24, 41)
-(24, 51)
-(24, 55)
-(25, 27)
-(25, 28)
-(25, 29)
-(25, 41)
-(25, 51)
-(25, 55)
-(27, 28)
-(27, 29)
-(27, 41)
-(27, 51)
-(27, 55)
-(28, 29)
-(28, 41)
-(28, 51)
-(28, 55)
-(29, 41)
-(29, 51)
-(29, 55)
-(41, 51)
-(41, 55)
-(51, 55)
+(lp0
+(S'bags'
+p1
+S'shoes'
+p2
+tp3
+a(g1
+S'jewellery'
+p4
+tp5
+a(g1
+S'tops'
+p6
+tp7
+a(g1
+S'bottoms'
+p8
+tp9
+a(g2
+g4
+tp10
+a(g2
+g6
+tp11
+a(g2
+g8
+tp12
+a(g4
+g6
+tp13
+a(g4
+g8
+tp14
+a(g6
+g8
+tp15
+a(S'bags'
+p16
+S'all-body'
+p17
+tp18
+a(g16
+S'outerwear'
+p19
+tp20
+a(S'shoes'
+p21
+g17
+tp22
+a(g21
+g19
+tp23
+a(g17
+g19
+tp24
+a(S'bags'
+p25
+S'sunglasses'
+p26
+tp27
+a(S'shoes'
+p28
+g26
+tp29
+a(g6
+g26
+tp30
+a(g6
+g19
+tp31
+a(g26
+S'bottoms'
+p32
+tp33
+a(g26
+g19
+tp34
+a(g32
+g19
+tp35
+a(S'jewellery'
+p36
+S'jewellery'
+p37
+tp38
+a(g36
+S'all-body'
+p39
+tp40
+a(S'tops'
+p41
+g6
+tp42
+a(S'bags'
+p43
+S'hats'
+p44
+tp45
+a(g43
+S'scarves'
+p46
+tp47
+a(S'shoes'
+p48
+g44
+tp49
+a(g48
+g46
+tp50
+a(g44
+S'tops'
+p51
+tp52
+a(g44
+S'bottoms'
+p53
+tp54
+a(g44
+g46
+tp55
+a(g51
+g46
+tp56
+a(g53
+g46
+tp57
+a(S'shoes'
+p58
+S'accessories'
+p59
+tp60
+a(S'jewellery'
+p61
+g59
+tp62
+a(g61
+g46
+tp63
+a(S'tops'
+p64
+g59
+tp65
+a(g59
+S'bottoms'
+p66
+tp67
+a(g59
+g46
+tp68
+a(g37
+S'outerwear'
+p69
+tp70
+a(g43
+g25
+tp71
+a(g25
+g59
+tp72
+a(S'jewellery'
+p73
+g26
+tp74
+a(g26
+g17
+tp75
+a(g44
+g26
+tp76
+a(S'accessories'
+p77
+g59
+tp78
+a(g26
+S'accessories'
+p79
+tp80
+a(S'accessories'
+p81
+g19
+tp82
+a(g44
+S'all-body'
+p83
+tp84
+a(g41
+g83
+tp85
+a(g83
+g32
+tp86
+a(g44
+S'accessories'
+p87
+tp88
+a(g44
+S'outerwear'
+p89
+tp90
+a(S'scarves'
+p91
+g89
+tp92
+a(g59
+g17
+tp93
+a(g36
+g44
+tp94
+a(g17
+g46
+tp95
+a(S'all-body'
+p96
+g17
+tp97
+a(g26
+g91
+tp98
+a(S'bottoms'
+p99
+S'bottoms'
+p100
+tp101
+a(S'shoes'
+p102
+S'shoes'
+p103
+tp104
+a(g19
+g69
+tp105
+a(g46
+g91
+tp106
+a(g44
+S'hats'
+p107
+tp108
+a(S'sunglasses'
+p109
+g26
+tp110
+a.
