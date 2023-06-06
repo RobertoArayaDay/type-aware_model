@@ -99,7 +99,7 @@ class TypeSpecificNet(nn.Module):
                when None including the general embedding concatenated onto the end
         """
         
-        embedded_x = self.embeddingnet(x)
+        embedded_x = self.embeddingnet(x) # batch_size, embed_net
         if c is None:
             # used during testing, wants all type specific embeddings returned for an image
             if self.fc_masks:

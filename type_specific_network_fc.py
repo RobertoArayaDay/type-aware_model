@@ -93,7 +93,7 @@ class TypeSpecificNetAttention(nn.Module):
         """
         
         embedded_x = self.embeddingnet(x)
-        # (1, 64)
+        # (batch, 64)
        
         if c is None:
             # used during testing, wants all type specific embeddings returned for an image
