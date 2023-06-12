@@ -103,7 +103,7 @@ def load_fitb_questions(fn, im2index, id2im):
     return questions
 
 class TripletImageLoader(torch.utils.data.Dataset):
-    def __init__(self, args, split, meta_data, text_dim = None, transform=None, loader=default_image_loader, return_image_path=False):
+    def __init__(self, args, split, meta_data, typespaces, text_dim = None, transform=None, loader=default_image_loader, return_image_path=False):
         rootdir = os.path.join(args.datadir, 'polyvore_outfits', args.polyvore_split)
         self.impath = os.path.join(args.datadir, 'polyvore_outfits', 'images')
         self.is_train = split == 'train'
@@ -140,7 +140,8 @@ class TripletImageLoader(torch.utils.data.Dataset):
         self.data = outfit_data
         self.imnames = imnames
         self.im2type = im2type
-        self.typespaces = load_typespaces(rootdir, args.rand_typespaces, args.num_rand_embed)
+        self.typespaces = typespaces
+        #self.typespaces = load_typespaces(rootdir, args.rand_typespaces, args.num_rand_embed)
         
         self.transform = transform
         self.loader = loader
@@ -256,8 +257,6 @@ class TripletImageLoader(torch.utils.data.Dataset):
             for the pair of item types provided as input
         """
         query = (anchor, pair)
-        if query not in self.typespaces:
-            query = (pair, anchor)
 
         return self.typespaces[query]
 

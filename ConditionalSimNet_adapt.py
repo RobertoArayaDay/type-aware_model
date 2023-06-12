@@ -80,6 +80,7 @@ class ConditionalSimNet(nn.Module):
         self.unique_items = list(get_unique_items(typespaces)) # from pairs of categories in typespace obtains unique categories
         self.num_category = len(self.unique_items) # integer of unique categories in typespaces
         
+        
         #self.unique_dict = dict(zip(unique_items, range(len(unique_items))))
         #pairs_items = list(combinations(unique_items, 2)) 
         
@@ -130,6 +131,7 @@ class ConditionalSimNet(nn.Module):
 
     
     def forward(self, image, c=None):
+        # c tiene que ser un par (categoria1, categoria2)
         # image (B,C,H,W)
         # image_category (B, NUM_CATE)
         # concat_categories (B, NUM_CATE * @)
@@ -137,16 +139,13 @@ class ConditionalSimNet(nn.Module):
         embedded_x = self.embeddingnet(image) # Batch, embedding_dims
         feature_x = embedded_x.unsqueeze(dim=1)
         b, _, _ = feature_x.size()
-        feature_x = feature_x.expand((b, self.num_conditions, self.dim_embed))
-        # Batch, num_conditions, embedding_dims
+        feature_x = feature_x.expand((b, self.num_conditions, self.dim_embed)) # Batch, num_conditions, embedding_dims
 
         index = torch.arange(self.num_conditions, device=image.device).unsqueeze(dim=0).expand(b, self.num_conditions) # batch_size, num_conditions
         
         embed = self.masks(index) # batch_size, num_conditions, embedding_dims
         embed_feature = embed * feature_x # batch_size, num_conditions, embedding_dims
-        
         if c is None:
-            final_feature = []
             
             categories_encoding = list(self.typespaces.keys()) # total_pair_categories, 2 - se obtienen todas los pares de categorias - las posibles combinaciones
             
@@ -154,7 +153,7 @@ class ConditionalSimNet(nn.Module):
             categories_encoding = categories_encoding.unsqueeze(dim = 0)
             total_pair_categories = categories_encoding.shape[1]
             
-            categories_encoding.expand((b, total_pair_categories, self.num_category*2))  # (batch_size, total_pair_categories num_categoriesx2)
+            categories_encoding = categories_encoding.expand((b, total_pair_categories, self.num_category*2))  # (batch_size, total_pair_categories num_categoriesx2)
             
             #for single_embed in embed_feature:
             attention_weight = self.cate_net(categories_encoding) # batch_size, total_pair_categories, num_conditions
@@ -170,12 +169,10 @@ class ConditionalSimNet(nn.Module):
                 
             #final_feature = torch.cat(final_feature, 1)
             return torch.cat((condition_feature, feature_x), 1)
-            
         else:
-            c_array = [list(self.typespaces.keys())[list(self.typespaces.values()).index(i)] for i in c] # creates a list of all pair of categories for all conditions in c 
+            c_array = [list(self.typespaces.keys())[list(self.typespaces.values()).index(i)] for i in c] # creates a list of all pair of categories for all conditions in c
             
             c_array = torch.Tensor(one_hot_encoding(c_array, self.unique_items)).cuda() # returns the one-hot encoding for all conditions in c_array given the unique items - (batch_size, num_category * 2)
-            
             
             attention_weight = self.cate_net(c_array) # batch_size, num_conditions
             attention_weight = attention_weight.unsqueeze(dim=2)
@@ -186,7 +183,9 @@ class ConditionalSimNet(nn.Module):
             final_feature = torch.sum(weighted_feature, dim=1) # batch_size, embedding_dims
 
             embed_norm = embedded_x.norm(2)
+            
             mask_norm = 0. # cambiar esto
+            #for mask in 
 
             return final_feature, mask_norm, embed_norm, embedded_x
         
@@ -316,7 +315,7 @@ class ConditionalSimNet2(nn.Module):
             categories_encoding = categories_encoding.unsqueeze(dim = 0)
             total_pair_categories = categories_encoding.shape[1]
             
-            categories_encoding.expand((b, total_pair_categories, self.num_category*2))  # (batch_size, total_pair_categories num_categoriesx2)
+            categories_encoding = categories_encoding.expand((b, total_pair_categories, self.num_category*2))  # (batch_size, total_pair_categories num_categoriesx2)
             
             #for single_embed in embed_feature:
             attention_weight = self.cate_net(categories_encoding) # batch_size, total_pair_categories, num_conditions
@@ -460,7 +459,7 @@ class ConditionalSimNetNew(nn.Module):
             categories_encoding = categories_encoding.unsqueeze(dim = 0)
             total_pair_categories = categories_encoding.shape[1]
             
-            categories_encoding.expand((b, total_pair_categories, self.num_category*2))  # (batch_size, total_pair_categories num_categoriesx2)
+            categories_encoding = categories_encoding.expand((b, total_pair_categories, self.num_category*2))  # (batch_size, total_pair_categories num_categoriesx2)
             
             #for single_embed in embed_feature:
             attention_weight = self.cate_net(categories_encoding) # batch_size, total_pair_categories, num_conditions

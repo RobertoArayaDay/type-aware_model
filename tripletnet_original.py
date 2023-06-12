@@ -90,6 +90,7 @@ class Tripletnet(nn.Module):
         if dist_a.is_cuda:
             target = target.cuda()
         target = Variable(target)
+        
 
         # type specific triplet loss
         loss_triplet = self.criterion(dist_a, dist_b, target)
@@ -104,6 +105,8 @@ class Tripletnet(nn.Module):
         disti_p = F.pairwise_distance(general_y, general_z, 2)
         disti_n1 = F.pairwise_distance(general_y, general_x, 2)
         disti_n2 = F.pairwise_distance(general_z, general_x, 2)
+        
+        if self.metric_branch: target = target.squeeze()
         loss_sim_i1 = self.criterion(disti_p, disti_n1, target)
         loss_sim_i2 = self.criterion(disti_p, disti_n2, target)
         loss_sim_i = (loss_sim_i1 + loss_sim_i2) / 2.
