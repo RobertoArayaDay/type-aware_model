@@ -13,6 +13,7 @@ from torch.autograd import Variable
 
 def default_image_loader(path):
     return Image.open(path).convert('RGB')
+    #return Image.open(path).convert('L')
 
 def parse_iminfo(question, im2index, id2im, gt = None):
     """ Maps the questions from the FITB and compatibility tasks back to
@@ -217,7 +218,11 @@ class TripletImageLoader(torch.utils.data.Dataset):
         img = self.loader(imfn)
         if self.transform is not None:
             img = self.transform(img)
-
+            avg_color = torch.mean(img.float(), dim=0).unsqueeze(0)
+            img = torch.cat((avg_color, avg_color, avg_color), 0)
+            #print(img.shape)
+        
+        
         if image_id in self.im2desc:
             text = self.im2desc[image_id]
             text_features = self.desc2vecs[text]
@@ -393,10 +398,14 @@ class TripletImageLoader(torch.utils.data.Dataset):
 
         anchor = self.imnames[index]
         imgcat = self.im2type[anchor]
-        
+                
         img1 = self.loader(os.path.join(self.impath, '%s.jpg' % anchor))
         if self.transform is not None:
+                                             
             img1 = self.transform(img1)
+            avg_color = torch.mean(img1.float(), dim=0).unsqueeze(0)
+            img1 = torch.cat((avg_color, avg_color, avg_color), 0)
+        
         if self.return_image_path:
             return (img1, os.path.join(self.impath, '%s.jpg' % anchor), imgcat)
             

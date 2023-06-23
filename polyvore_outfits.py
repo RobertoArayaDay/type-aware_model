@@ -214,6 +214,8 @@ class TripletImageLoader(torch.utils.data.Dataset):
         imfn = os.path.join(self.impath, '%s.jpg' % image_id)
         
         img = self.loader(imfn)
+        print(img.shape)
+        print(img)
         if self.transform is not None:
             img = self.transform(img)
 

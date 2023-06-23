@@ -156,6 +156,9 @@ class ConditionalSimNet(nn.Module):
             categories_encoding = categories_encoding.expand((b, total_pair_categories, self.num_category*2))  # (batch_size, total_pair_categories num_categoriesx2)
             
             #for single_embed in embed_feature:
+            #attention_weight = torch.tensor([0, 0, 1, 0, 0])
+            #attention_weight = attention_weight.unsqueeze(0).unsqueeze(0).cuda()
+            
             attention_weight = self.cate_net(categories_encoding) # batch_size, total_pair_categories, num_conditions
             attention_weight = attention_weight.unsqueeze(dim=3)  # batch_size, total_pair_categories, num_conditions, 1
             attention_weight = attention_weight.expand((b, total_pair_categories, self.num_conditions, self.dim_embed)) # batch_size, total_pair_categories, num_conditions, embedding_dims
