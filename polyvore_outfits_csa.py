@@ -150,45 +150,11 @@ class TripletImageLoader(torch.utils.data.Dataset):
         self.return_image_path = return_image_path
 
         if self.is_train:
-            self.text_feat_dim = text_dim
-            self.desc2vecs = {}
-            featfile = os.path.join(rootdir, 'train_hglmm_pca6000.txt')
-            with open(featfile, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
-                    vec = line.split(',')
-                    label = ','.join(vec[:-self.text_feat_dim])
-                    vec = np.array([float(x) for x in vec[-self.text_feat_dim:]], np.float32)
-                    assert(len(vec) == text_dim)
-                    self.desc2vecs[label] = vec
-            
-            #print(self.desc2vecs)
-            #print()
-            self.im2desc = {}
-            
-            #contador_total = 0
-            #contador_desc = 0
-            for im in imnames:
-                #contador_total += 1
-                
-                desc = meta_data[im]['title']
-                if not desc:
-                    desc = meta_data[im]['url_name']
-                    
-                desc = desc.replace('\n','').encode('ascii', 'ignore').strip().lower()
-                
-                # sometimes descriptions didn't map to any known words so they were
-                # removed, so only add those which have a valid feature representation
-                if desc and desc in self.desc2vecs:
-                    self.im2desc[im] = desc
-                    #contador_desc += 1
             
             # At train time we pull the list of outfits and enumerate the pairwise
             # comparisons between them to train with.  Negatives are pulled by the
             # __get_item__ function
+            print('entra aqui antes de positive pairs')
             pos_pairs = []
             max_items = 0
             for outfit in outfit_data:
@@ -199,6 +165,7 @@ class TripletImageLoader(torch.utils.data.Dataset):
                 for j in range(cnt-1):
                     for k in range(j+1, cnt):
                         pos_pairs.append([outfit_id, items[j]['item_id'], items[k]['item_id']])
+            print('termina positive pairs')
 
             self.pos_pairs = pos_pairs
             self.category2ims = category2ims
@@ -220,20 +187,13 @@ class TripletImageLoader(torch.utils.data.Dataset):
             img = self.transform(img)
             avg_color = torch.mean(img.float(), dim=0).unsqueeze(0)
             img = torch.cat((avg_color, avg_color, avg_color), 0)
-            #print(img.shape)
         
-        
-        if image_id in self.im2desc:
-            text = self.im2desc[image_id]
-            text_features = self.desc2vecs[text]
-            has_text = 1
-        else:
-            text_features = np.zeros(self.text_feat_dim, np.float32)
-            has_text = 0.
-
-        has_text = np.float32(has_text)
         item_type = self.im2type[image_id]
-        return img, text_features, has_text, item_type
+        
+        if self.return_image_path:
+            return img, item_type, imfn
+       
+        return img, item_type
 
     def sample_negative(self, outfit_id, item_id, item_type):
         """ Returns a randomly sampled item from a different set
@@ -387,14 +347,26 @@ class TripletImageLoader(torch.utils.data.Dataset):
     
     def __getitem__(self, index):
         if self.is_train:
-            outfit_id, anchor_im, pos_im = self.pos_pairs[index]
-            img1, desc1, has_text1, anchor_type = self.load_train_item(anchor_im)
-            img2, desc2, has_text2, item_type = self.load_train_item(pos_im)
+            if self.return_image_path:
+                outfit_id, anchor_im, pos_im = self.pos_pairs[index]
+                img1, anchor_type, img1path = self.load_train_item(anchor_im)
+                img2, item_type, img2path = self.load_train_item(pos_im)
+
+                neg_im = self.sample_negative(outfit_id, pos_im, item_type)
+                img3, _, img3path = self.load_train_item(neg_im)
+                condition = self.get_typespace(anchor_type, item_type)
+                return img1, img2, img3, img1path, img2path, img3path, condition
+        
+            else:
+                outfit_id, anchor_im, pos_im = self.pos_pairs[index]
+                img1, anchor_type = self.load_train_item(anchor_im)
+                img2, item_type = self.load_train_item(pos_im)
+
+                neg_im = self.sample_negative(outfit_id, pos_im, item_type)
+                img3, _ = self.load_train_item(neg_im)
+                condition = self.get_typespace(anchor_type, item_type)
+                return img1, img2, img3, condition
             
-            neg_im = self.sample_negative(outfit_id, pos_im, item_type)
-            img3, desc3, has_text3, _ = self.load_train_item(neg_im)
-            condition = self.get_typespace(anchor_type, item_type)
-            return img1, desc1, has_text1, img2, desc2, has_text2, img3, desc3, has_text3, condition
 
         anchor = self.imnames[index]
         imgcat = self.im2type[anchor]

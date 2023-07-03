@@ -65,7 +65,9 @@ class Tripletnet(nn.Module):
         self.criterion = criterion
         self.margin = args.margin
 
-    def image_forward(self, x, y, z):
+
+
+    def forward(self, x, y, z):
         """ x: Anchor data
             y: Distant (negative) data
             z: Close (positive) data
@@ -75,17 +77,11 @@ class Tripletnet(nn.Module):
         embedded_x, masknorm_norm_x, embed_norm_x, general_x = self.embeddingnet(x.images, c)
         embedded_y, masknorm_norm_y, embed_norm_y, general_y = self.embeddingnet(y.images, c)
         embedded_z, masknorm_norm_z, embed_norm_z, general_z = self.embeddingnet(z.images, c)
-        mask_norm = (masknorm_norm_x + masknorm_norm_y + masknorm_norm_z) / 3
-        embed_norm = (embed_norm_x + embed_norm_y + embed_norm_z) / 3
-        loss_embed = embed_norm / np.sqrt(len(x))
-        loss_mask = mask_norm / len(x)
-        if self.metric_branch is None:
-            dist_a = F.pairwise_distance(embedded_x, embedded_y, 2)
-            dist_b = F.pairwise_distance(embedded_x, embedded_z, 2)
-        else:
-            dist_a = self.metric_branch(embedded_x*embedded_y)
-            dist_b = self.metric_branch(embedded_x*embedded_z)
-
+        
+        
+        dist_a = F.pairwise_distance(embedded_x, embedded_y, 2)
+        dist_b = F.pairwise_distance(embedded_x, embedded_z, 2)
+        
         target = torch.FloatTensor(dist_a.size()).fill_(1)
         if dist_a.is_cuda:
             target = target.cuda()
@@ -94,66 +90,5 @@ class Tripletnet(nn.Module):
         # type specific triplet loss
         loss_triplet = self.criterion(dist_a, dist_b, target)
         acc = accuracy(dist_a, dist_b)
-        
-        #print('embedding of xyz')
-        #print(embedded_x.sum(), embedded_y.sum(), embedded_z.sum())
-        #print(embedded_x, embedded_y, embedded_z)
-        #print(dist_a, dist_b)
 
-        # calculate image similarity loss on the general embedding
-        disti_p = F.pairwise_distance(general_y, general_z, 2)
-        disti_n1 = F.pairwise_distance(general_y, general_x, 2)
-        disti_n2 = F.pairwise_distance(general_z, general_x, 2)
-        loss_sim_i1 = self.criterion(disti_p, disti_n1, target)
-        loss_sim_i2 = self.criterion(disti_p, disti_n2, target)
-        loss_sim_i = (loss_sim_i1 + loss_sim_i2) / 2.
-
-        return acc, loss_triplet, loss_sim_i, loss_mask, loss_embed, general_x, general_y, general_z
-
-    def text_forward(self, x, y, z):
-        """ x: Anchor data
-            y: Distant (negative) data
-            z: Close (positive) data
-        """
-        desc_x = self.text_branch(x.text)
-        desc_y = self.text_branch(y.text)
-        desc_z = self.text_branch(z.text)
-        distd_p = F.pairwise_distance(desc_y, desc_z, 2)
-        distd_n1 = F.pairwise_distance(desc_x, desc_y, 2)
-        distd_n2 = F.pairwise_distance(desc_x, desc_z, 2)
-        has_text = x.has_text * y.has_text * z.has_text
-        loss_sim_t1 = selective_margin_loss(distd_p, distd_n1, self.margin, has_text)
-        loss_sim_t2 = selective_margin_loss(distd_p, distd_n2, self.margin, has_text)
-        loss_sim_t = (loss_sim_t1 + loss_sim_t2) / 2.
-        return loss_sim_t, desc_x, desc_y, desc_z
-
-    def calc_vse_loss(self, desc_x, general_x, general_y, general_z, has_text):
-        """ Both y and z are assumed to be negatives because they are not from the same 
-            item as x
-
-            desc_x: Anchor language embedding
-            general_x: Anchor visual embedding
-            general_y: Visual embedding from another item from input triplet
-            general_z: Visual embedding from another item from input triplet
-            has_text: Binary indicator of whether x had a text description
-        """
-        distd1_p = F.pairwise_distance(general_x, desc_x, 2)
-        distd1_n1 = F.pairwise_distance(general_y, desc_x, 2)
-        distd1_n2 = F.pairwise_distance(general_z, desc_x, 2)
-        loss_vse_1 = selective_margin_loss(distd1_p, distd1_n1, self.margin, has_text)
-        loss_vse_2 = selective_margin_loss(distd1_p, distd1_n2, self.margin, has_text)
-        return (loss_vse_1 + loss_vse_2) / 2.
-
-    def forward(self, x, y, z):
-        """ x: Anchor data
-            y: Distant (negative) data
-            z: Close (positive) data
-        """
-        acc, loss_triplet, loss_sim_i, loss_mask, loss_embed, general_x, general_y, general_z = self.image_forward(x, y, z)
-        #loss_sim_t, desc_x, desc_y, desc_z = self.text_forward(x, y, z)
-        #loss_vse_x = self.calc_vse_loss(desc_x, general_x, general_y, general_z, x.has_text)
-        #loss_vse_y = self.calc_vse_loss(desc_y, general_y, general_x, general_z, y.has_text)
-        #loss_vse_z = self.calc_vse_loss(desc_z, general_z, general_x, general_y, z.has_text)
-        #loss_vse = (loss_vse_x + loss_vse_y + loss_vse_z) / 3.
-        #return acc, loss_triplet, loss_mask, loss_embed, loss_vse, loss_sim_t, loss_sim_i
-        return acc, loss_triplet, loss_mask, loss_embed, loss_sim_i
+        return acc, loss_triplet
