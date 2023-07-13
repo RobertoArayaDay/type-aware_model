@@ -242,16 +242,15 @@ class TripletImageLoader(torch.utils.data.Dataset):
             num_comparisons = 0.0
             for i in range(n_items-1):
                 item1, img1 = outfit[i]
-                #type1 = self.im2type[img1]
+                type1 = self.im2type[img1]
                 for j in range(i+1, n_items):
                     item2, img2 = outfit[j]
-                    #type2 = self.im2type[img2]
-                    #condition = self.get_typespace(type1, type2)
-                    embed1 = embeds[item1].unsqueeze(0)
-                    embed2 = embeds[item2].unsqueeze(0)
+                    type2 = self.im2type[img2]
+                    condition = self.get_typespace(type1, type2)
+                    embed1 = embeds[item1][condition].unsqueeze(0)
+                    embed2 = embeds[item2][condition].unsqueeze(0)
                     
                     outfit_score += torch.nn.functional.pairwise_distance(embed1, embed2, 2)
-                    
 
                     num_comparisons += 1.
                 
@@ -280,16 +279,15 @@ class TripletImageLoader(torch.utils.data.Dataset):
         for q_index, (questions, answers, is_correct) in enumerate(self.fitb_questions):
             answer_score = np.zeros(len(answers), dtype=np.float32)
             for index, (answer, img1) in enumerate(answers):
-                #type1 = self.im2type[img1]
+                type1 = self.im2type[img1]
                 score = 0.0
                 for question, img2 in questions:
-                    #type2 = self.im2type[img2]
-                    #condition = self.get_typespace(type1, type2)
-                    embed1 = embeds[question].unsqueeze(0)
-                    embed2 = embeds[answer].unsqueeze(0)
+                    type2 = self.im2type[img2]
+                    condition = self.get_typespace(type1, type2)
+                    embed1 = embeds[question][condition].unsqueeze(0)
+                    embed2 = embeds[answer][condition].unsqueeze(0)
                     
                     score += torch.nn.functional.pairwise_distance(embed1, embed2, 2)
-                    
 
                 answer_score[index] = score.squeeze().cpu().numpy()
             
@@ -316,16 +314,14 @@ class TripletImageLoader(torch.utils.data.Dataset):
         for q_index, (questions, answers, is_correct) in enumerate(self.fitb_questions):
             answer_score = np.zeros(len(answers), dtype=np.float32)
             for index, (answer, img1) in enumerate(answers):
-                #type1 = self.im2type[img1]
+                type1 = self.im2type[img1]
                 score = 0.0
                 for question, img2 in questions:
-                    #type2 = self.im2type[img2]
-                    #condition = self.get_typespace(type1, type2)
-                    embed1 = embeds[question].unsqueeze(0)
-                    embed2 = embeds[answer].unsqueeze(0)
-                    
+                    type2 = self.im2type[img2]
+                    condition = self.get_typespace(type1, type2)
+                    embed1 = embeds[question][condition].unsqueeze(0)
+                    embed2 = embeds[answer][condition].unsqueeze(0)
                     score += torch.nn.functional.pairwise_distance(embed1, embed2, 2)
-              
 
                 answer_score[index] = score.squeeze().cpu().numpy()
             

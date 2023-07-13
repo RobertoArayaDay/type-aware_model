@@ -135,7 +135,8 @@ class ConditionalSimNet(nn.Module):
         # image (B,C,H,W)
         # image_category (B, NUM_CATE)
         # concat_categories (B, NUM_CATE * @)
-
+        
+        device = next(self.parameters()).device
         embedded_x = self.embeddingnet(image) # Batch, embedding_dims
         feature_x = embedded_x.unsqueeze(dim=1)
         b, _, _ = feature_x.size()
@@ -149,7 +150,7 @@ class ConditionalSimNet(nn.Module):
             
             categories_encoding = list(self.typespaces.keys()) # total_pair_categories, 2 - se obtienen todas los pares de categorias - las posibles combinaciones
             
-            categories_encoding = torch.Tensor(one_hot_encoding(categories_encoding, self.unique_items)).cuda()                 # (total_pair_categories, num_categoriesx2)
+            categories_encoding = torch.Tensor(one_hot_encoding(categories_encoding, self.unique_items)).to(device)                 # (total_pair_categories, num_categoriesx2)
             categories_encoding = categories_encoding.unsqueeze(dim = 0)
             total_pair_categories = categories_encoding.shape[1]
             
@@ -175,7 +176,7 @@ class ConditionalSimNet(nn.Module):
         else:
             c_array = [list(self.typespaces.keys())[list(self.typespaces.values()).index(i)] for i in c] # creates a list of all pair of categories for all conditions in c
             
-            c_array = torch.Tensor(one_hot_encoding(c_array, self.unique_items)).cuda() # returns the one-hot encoding for all conditions in c_array given the unique items - (batch_size, num_category * 2)
+            c_array = torch.Tensor(one_hot_encoding(c_array, self.unique_items)).to(device)   # returns the one-hot encoding for all conditions in c_array given the unique items - (batch_size, num_category * 2)
             
             attention_weight = self.cate_net(c_array) # batch_size, num_conditions
             attention_weight = attention_weight.unsqueeze(dim=2)

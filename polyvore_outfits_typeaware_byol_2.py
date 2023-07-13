@@ -104,7 +104,7 @@ def load_fitb_questions(fn, im2index, id2im):
     return questions
 
 class TripletImageLoader(torch.utils.data.Dataset):
-    def __init__(self, args, split, meta_data, text_dim = None, transform=None, loader=default_image_loader, return_image_path=False):
+    def __init__(self, args, split, meta_data, typespaces, text_dim = None, transform=None, loader=default_image_loader, return_image_path=False):
         rootdir = os.path.join(args.datadir, 'polyvore_outfits', args.polyvore_split)
         self.impath = os.path.join(args.datadir, 'polyvore_outfits', 'images')
         self.is_train = split == 'train'
@@ -141,8 +141,8 @@ class TripletImageLoader(torch.utils.data.Dataset):
         self.data = outfit_data
         self.imnames = imnames
         self.im2type = im2type
-        #self.typespaces = typespaces
-        self.typespaces = load_typespaces(rootdir, args.rand_typespaces, args.num_rand_embed)
+        self.typespaces = typespaces
+        #self.typespaces = load_typespaces(rootdir, args.rand_typespaces, args.num_rand_embed)
         
         self.transform = transform
         self.loader = loader
@@ -154,7 +154,12 @@ class TripletImageLoader(torch.utils.data.Dataset):
             # At train time we pull the list of outfits and enumerate the pairwise
             # comparisons between them to train with.  Negatives are pulled by the
             # __get_item__ function
-            pos_pairs = []
+            pos_pairs = {}
+            for k in range(len(self.typespaces)):
+                pos_pairs[k] = []
+            
+            print(pos_pairs.keys())
+            
             max_items = 0
             for outfit in outfit_data:
                 items = outfit['items']
@@ -163,7 +168,14 @@ class TripletImageLoader(torch.utils.data.Dataset):
                 outfit_id = outfit['set_id']
                 for j in range(cnt-1):
                     for k in range(j+1, cnt):
-                        pos_pairs.append([outfit_id, items[j]['item_id'], items[k]['item_id']])
+                        category_j = self.im2type[items[j]['item_id']]
+                        category_k = self.im2type[items[k]['item_id']]
+                        
+                        first_condition = self.get_typespace(category_j, category_k)
+                        second_condition = self.get_typespace(category_k, category_j)
+                        
+                        pos_pairs[first_condition].append([outfit_id, items[j]['item_id'], items[k]['item_id']])
+                        pos_pairs[second_condition].append([outfit_id, items[k]['item_id'], items[j]['item_id']])
 
             self.pos_pairs = pos_pairs
             self.category2ims = category2ims
@@ -218,8 +230,6 @@ class TripletImageLoader(torch.utils.data.Dataset):
             for the pair of item types provided as input
         """
         query = (anchor, pair)
-        if query not in self.typespaces:
-            query = (pair, anchor)
 
         return self.typespaces[query]
 
@@ -242,16 +252,15 @@ class TripletImageLoader(torch.utils.data.Dataset):
             num_comparisons = 0.0
             for i in range(n_items-1):
                 item1, img1 = outfit[i]
-                #type1 = self.im2type[img1]
+                type1 = self.im2type[img1]
                 for j in range(i+1, n_items):
                     item2, img2 = outfit[j]
-                    #type2 = self.im2type[img2]
-                    #condition = self.get_typespace(type1, type2)
-                    embed1 = embeds[item1].unsqueeze(0)
-                    embed2 = embeds[item2].unsqueeze(0)
+                    type2 = self.im2type[img2]
+                    condition = self.get_typespace(type1, type2)
+                    embed1 = embeds[item1][condition].unsqueeze(0)
+                    embed2 = embeds[item2][condition].unsqueeze(0)
                     
                     outfit_score += torch.nn.functional.pairwise_distance(embed1, embed2, 2)
-                    
 
                     num_comparisons += 1.
                 
@@ -265,6 +274,9 @@ class TripletImageLoader(torch.utils.data.Dataset):
         #np.save('feats.npy', scores)
         auc = roc_auc_score(labels, 1 - scores)
         return auc
+    
+    def set_batch_condition(self, condition):
+        self.current_batch_condition = condition
 
     def test_fitb(self, embeds):
         """ Returns the accuracy of the fill in the blank task
@@ -280,16 +292,15 @@ class TripletImageLoader(torch.utils.data.Dataset):
         for q_index, (questions, answers, is_correct) in enumerate(self.fitb_questions):
             answer_score = np.zeros(len(answers), dtype=np.float32)
             for index, (answer, img1) in enumerate(answers):
-                #type1 = self.im2type[img1]
+                type1 = self.im2type[img1]
                 score = 0.0
                 for question, img2 in questions:
-                    #type2 = self.im2type[img2]
-                    #condition = self.get_typespace(type1, type2)
-                    embed1 = embeds[question].unsqueeze(0)
-                    embed2 = embeds[answer].unsqueeze(0)
+                    type2 = self.im2type[img2]
+                    condition = self.get_typespace(type1, type2)
+                    embed1 = embeds[question][condition].unsqueeze(0)
+                    embed2 = embeds[answer][condition].unsqueeze(0)
                     
                     score += torch.nn.functional.pairwise_distance(embed1, embed2, 2)
-                    
 
                 answer_score[index] = score.squeeze().cpu().numpy()
             
@@ -316,16 +327,14 @@ class TripletImageLoader(torch.utils.data.Dataset):
         for q_index, (questions, answers, is_correct) in enumerate(self.fitb_questions):
             answer_score = np.zeros(len(answers), dtype=np.float32)
             for index, (answer, img1) in enumerate(answers):
-                #type1 = self.im2type[img1]
+                type1 = self.im2type[img1]
                 score = 0.0
                 for question, img2 in questions:
-                    #type2 = self.im2type[img2]
-                    #condition = self.get_typespace(type1, type2)
-                    embed1 = embeds[question].unsqueeze(0)
-                    embed2 = embeds[answer].unsqueeze(0)
-                    
+                    type2 = self.im2type[img2]
+                    condition = self.get_typespace(type1, type2)
+                    embed1 = embeds[question][condition].unsqueeze(0)
+                    embed2 = embeds[answer][condition].unsqueeze(0)
                     score += torch.nn.functional.pairwise_distance(embed1, embed2, 2)
-              
 
                 answer_score[index] = score.squeeze().cpu().numpy()
             
@@ -343,7 +352,7 @@ class TripletImageLoader(torch.utils.data.Dataset):
     def __getitem__(self, index):
         if self.is_train:
             if self.return_image_path:
-                outfit_id, anchor_im, pos_im = self.pos_pairs[index]
+                outfit_id, anchor_im, pos_im = self.pos_pairs[self.current_batch_condition][index]
                 img1, anchor_type, img1path = self.load_train_item(anchor_im)
                 img2, item_type, img2path = self.load_train_item(pos_im)
                 condition = self.get_typespace(anchor_type, item_type)
@@ -354,7 +363,7 @@ class TripletImageLoader(torch.utils.data.Dataset):
                 #return img1, img2, img3, img1path, img2path, img3path, condition
         
             else:
-                outfit_id, anchor_im, pos_im = self.pos_pairs[index]
+                outfit_id, anchor_im, pos_im = self.pos_pairs[self.current_batch_condition][index]
                 img1, anchor_type = self.load_train_item(anchor_im)
                 img2, item_type = self.load_train_item(pos_im)
                 condition = self.get_typespace(anchor_type, item_type)

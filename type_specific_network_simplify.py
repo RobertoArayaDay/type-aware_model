@@ -15,14 +15,10 @@ class TypeSpecificNetAttention(nn.Module):
         
         # Boolean indicating whether masks are initialized in equally sized disjoint
         # sections or random otherwise
-        prein = args.prein
 
         # Indicates that there isn't a 1:1 relationship between type specific spaces
         # and pairs of items categories
-        if args.rand_typespaces:
-            n_conditions = int(np.ceil(n_conditions / float(args.num_rand_embed)))
 
-        self.learnedmask = learnedmask
         self.embeddingnet = embeddingnet
 
         # When true we l2 normalize the output type specific embeddings
