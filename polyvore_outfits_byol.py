@@ -166,6 +166,8 @@ class TripletImageLoader(torch.utils.data.Dataset):
                         pos_pairs.append([outfit_id, items[j]['item_id'], items[k]['item_id']])
 
             self.pos_pairs = pos_pairs
+            
+            print('amount of pos_pairs: ', len(pos_pairs))
             self.category2ims = category2ims
             self.max_items = max_items
         else:
