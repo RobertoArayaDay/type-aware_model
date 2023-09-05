@@ -5,11 +5,8 @@ This work is based on the [PyTorch](http://pytorch.org/) implementation for the 
 
 ## Usage
 
-You can download the Polyvore Outfits dataset including the splits and questions for the compatibility and fill-in-the-blank tasks from [here (6G)](https://drive.google.com/file/d/13-J4fAPZahauaGycw3j_YvbAHO7tOTW5/view?usp=sharing).  The code assumes you unpacked it in a dictory called `data`, but if you choose a different directory simply set the `--datadir` argument.  You can see a listing and description of the model options with:
+You can download the Polyvore Outfits dataset including the splits and questions for the compatibility and fill-in-the-blank tasks from [here (6G)](https://drive.google.com/file/d/13-J4fAPZahauaGycw3j_YvbAHO7tOTW5/view?usp=sharing).
 
-```sh
-    python main.py --help
-```
 
 This work presents the implementation of the following models:
 
